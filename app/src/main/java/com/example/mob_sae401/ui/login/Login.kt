@@ -36,10 +36,10 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import com.example.mob_sae401.PreferencesManager
 import com.example.mob_sae401.data.implementation.UserList
 import com.example.mob_sae401.ui.theme.Red
 import com.example.mob_sae401.ui.util.Routes
+import com.example.mob_sae401.PreferencesManager
 
 @Composable
 fun LoginPage(navController: NavHostController) {

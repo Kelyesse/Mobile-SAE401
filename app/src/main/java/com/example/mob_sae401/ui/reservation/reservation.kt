@@ -7,10 +7,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForwardIos
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -24,6 +23,7 @@ import com.example.mob_sae401.PreferencesManager
 import com.example.mob_sae401.R
 
 data class Reservation(
+    val id: Int, // ID unique pour chaque réservation
     val imageResId: Int,
     val title: String,
     val days: Int,
@@ -35,19 +35,19 @@ fun getReservations(context: Context): List<Reservation> {
     val preferencesManager = PreferencesManager(context)
     val reservations = mutableListOf<Reservation>()
 
-    for (i in 1..100) { // Vérifiez jusqu'à 100 entrées, ajustez ce nombre si nécessaire
+    for (i in 1..100) {
         val movieKey = "movie-$i"
         val bookKey = "book-$i"
 
         val movieData = preferencesManager.getData(movieKey, "blank")
         if (movieData != "blank") {
-            println("Movie data found for key $movieKey: $movieData")
             val dataParts = movieData.split("|")
-            if (dataParts.size >= 5) {
+            if (dataParts.size >= 6) { // Inclure l'ID unique
                 try {
                     reservations.add(
                         Reservation(
-                            imageResId = dataParts[1].toInt(), // Assuming the image ID is stored as an int
+                            id = dataParts[5].toInt(), // ID unique
+                            imageResId = dataParts[1].toInt(),
                             title = dataParts[0],
                             days = dataParts[3].toInt(),
                             date = dataParts[2],
@@ -64,13 +64,13 @@ fun getReservations(context: Context): List<Reservation> {
 
         val bookData = preferencesManager.getData(bookKey, "blank")
         if (bookData != "blank") {
-            println("Book data found for key $bookKey: $bookData")
             val dataParts = bookData.split("|")
-            if (dataParts.size >= 5) {
+            if (dataParts.size >= 6) { // Inclure l'ID unique
                 try {
                     reservations.add(
                         Reservation(
-                            imageResId = dataParts[1].toInt(), // Assuming the image ID is stored as an int
+                            id = dataParts[5].toInt(), // ID unique
+                            imageResId = dataParts[1].toInt(),
                             title = dataParts[0],
                             days = dataParts[3].toInt(),
                             date = dataParts[2],
@@ -93,7 +93,8 @@ fun getReservations(context: Context): List<Reservation> {
 @Composable
 fun ReservationItem(
     reservation: Reservation,
-    sectionTitle: String // pour la section titre on passe ce param
+    sectionTitle: String,
+    onDelete: () -> Unit
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -150,14 +151,13 @@ fun ReservationItem(
                 )
             }
 
-            Icon(
-                imageVector = Icons.Default.ArrowForwardIos,
-                contentDescription = "Arrow",
-                tint = Color.Red,
-                modifier = Modifier
-                    .size(24.dp)
-                    .padding(start = 8.dp)
-            )
+            IconButton(onClick = onDelete) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete Reservation",
+                    tint = Color.Red
+                )
+            }
         }
     }
 }
@@ -165,7 +165,26 @@ fun ReservationItem(
 @Composable
 fun ReservationPage() {
     val context = LocalContext.current
-    val reservations = getReservations(context)
+    var reservations by remember { mutableStateOf(getReservations(context)) }
+
+    fun deleteReservation(reservation: Reservation) {
+        val preferencesManager = PreferencesManager(context)
+
+        // Utilisation de l'ID unique pour la clé
+        val key = if (reservation.title.startsWith("Titre du film")) {
+            "movie-${reservation.id}"
+        } else {
+            "book-${reservation.id}"
+        }
+
+        println("Deleting key: $key for reservation: ${reservation.title}")
+
+        preferencesManager.removeData(key)
+
+        // Mise à jour de l'état des réservations
+        reservations = reservations.filter { it.id != reservation.id }
+    }
+
     val overdueReservations = reservations.filter { it.isOverdue }
     val activeReservations = reservations.filter { !it.isOverdue }
 
@@ -190,13 +209,17 @@ fun ReservationPage() {
         Spacer(modifier = Modifier.height(16.dp))
 
         overdueReservations.forEach { reservation ->
-            ReservationItem(reservation = reservation, sectionTitle = "Réservations en retard")
+            ReservationItem(reservation = reservation, sectionTitle = "Réservations en retard") {
+                deleteReservation(reservation)
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         activeReservations.forEach { reservation ->
-            ReservationItem(reservation = reservation, sectionTitle = "Réservations actives")
+            ReservationItem(reservation = reservation, sectionTitle = "Réservations actives") {
+                deleteReservation(reservation)
+            }
         }
     }
 }
