@@ -1,5 +1,6 @@
 package com.example.mob_sae401.ui.reservation
 
+import android.content.Context
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -9,14 +10,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForwardIos
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.mob_sae401.PreferencesManager
 import com.example.mob_sae401.R
 
 data class Reservation(
@@ -26,6 +30,65 @@ data class Reservation(
     val date: String,
     val isOverdue: Boolean
 )
+
+fun getReservations(context: Context): List<Reservation> {
+    val preferencesManager = PreferencesManager(context)
+    val reservations = mutableListOf<Reservation>()
+
+    for (i in 1..100) { // Vérifiez jusqu'à 100 entrées, ajustez ce nombre si nécessaire
+        val movieKey = "movie-$i"
+        val bookKey = "book-$i"
+
+        val movieData = preferencesManager.getData(movieKey, "blank")
+        if (movieData != "blank") {
+            println("Movie data found for key $movieKey: $movieData")
+            val dataParts = movieData.split("|")
+            if (dataParts.size >= 5) {
+                try {
+                    reservations.add(
+                        Reservation(
+                            imageResId = dataParts[1].toInt(), // Assuming the image ID is stored as an int
+                            title = dataParts[0],
+                            days = dataParts[3].toInt(),
+                            date = dataParts[2],
+                            isOverdue = dataParts[4].toBoolean()
+                        )
+                    )
+                } catch (e: Exception) {
+                    println("Error parsing movie reservation: ${e.message}")
+                }
+            } else {
+                println("Movie data has insufficient parts for key $movieKey: $dataParts")
+            }
+        }
+
+        val bookData = preferencesManager.getData(bookKey, "blank")
+        if (bookData != "blank") {
+            println("Book data found for key $bookKey: $bookData")
+            val dataParts = bookData.split("|")
+            if (dataParts.size >= 5) {
+                try {
+                    reservations.add(
+                        Reservation(
+                            imageResId = dataParts[1].toInt(), // Assuming the image ID is stored as an int
+                            title = dataParts[0],
+                            days = dataParts[3].toInt(),
+                            date = dataParts[2],
+                            isOverdue = dataParts[4].toBoolean()
+                        )
+                    )
+                } catch (e: Exception) {
+                    println("Error parsing book reservation: ${e.message}")
+                }
+            } else {
+                println("Book data has insufficient parts for key $bookKey: $dataParts")
+            }
+        }
+    }
+
+    return reservations
+}
+
 
 @Composable
 fun ReservationItem(
@@ -101,25 +164,10 @@ fun ReservationItem(
 
 @Composable
 fun ReservationPage() {
-    val overdueReservations = listOf(
-        Reservation(
-            imageResId = R.drawable.oppenheimer,
-            title = "Titre du film",
-            days = 4,
-            date = "10/05",
-            isOverdue = true
-        )
-    )
-
-    val activeReservations = listOf(
-        Reservation(
-            imageResId = R.drawable.oppenheimer,
-            title = "Titre du film",
-            days = 6,
-            date = "20/05",
-            isOverdue = false
-        )
-    )
+    val context = LocalContext.current
+    val reservations = getReservations(context)
+    val overdueReservations = reservations.filter { it.isOverdue }
+    val activeReservations = reservations.filter { !it.isOverdue }
 
     Column(
         modifier = Modifier

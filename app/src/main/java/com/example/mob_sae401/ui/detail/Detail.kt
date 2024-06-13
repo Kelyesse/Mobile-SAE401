@@ -48,8 +48,8 @@ import com.example.mob_sae401.data.models.Work
 import com.example.mob_sae401.data.models.WorkType
 
 @Composable
-fun DetailPage(work: Work?) {
 
+fun DetailPage(work: Work?) {
     work?.let {
         val context = LocalContext.current
         val preferencesManager = remember { PreferencesManager(context) }
@@ -61,7 +61,9 @@ fun DetailPage(work: Work?) {
 
         WorkInfo(it, booked.value) {
             booked.value = true
-            preferencesManager.saveData("${work.type}-${work.id}", "true")
+            val reservationData = "${work.name}|${work.image}|${work.releaseDate}|5|false" // Replace "5" and "false" with actual days and overdue status if needed
+            println("Saving reservation data for key ${work.type}-${work.id}: $reservationData")
+            preferencesManager.saveData("${work.type}-${work.id}", reservationData)
         }
     } ?: run {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -72,6 +74,7 @@ fun DetailPage(work: Work?) {
         }
     }
 }
+
 
 @Composable
 fun WorkInfo(
